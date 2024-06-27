@@ -1,44 +1,46 @@
 pipeline {
     agent any
+    tools{ maven 'MVN_HOME'}
+
     stages {
         stage('Build') {
+            agent any
             steps {
-                // Clean and compile the project
-                script {
-                    if (isUnix()) {
-                        sh 'mvn clean compile'
-                    } else {
-                        bat 'mvn clean compile'
-                    }
-                }
+                echo 'Building code....'
+               
             }
         }
-        stage('Parallel Test Execution') {
+        stage('checkout'){
+            agent any
+            steps{
+                 echo 'Checking out source code...'
+                 git credentialsId: 'key', url: 'https://github.com/nitinjain2107/JenkinsTest.git'
+                 stash 'source'
+        }
+        }
+        stage('Test'){
             parallel {
                 stage('Smoke Tests') {
+                    agent any
                     steps {
-                        script {
-                            if (isUnix()) {
-                                sh 'mvn test -Dsurefire.suiteXmlFiles=smoke-testng.xml'
-                            } else {
-                                bat 'mvn test -Dsurefire.suiteXmlFiles=smoke-testng.xml'
-                            }
-                        }
+                        echo 'Running smoke tests...'
+                        bat 'mvn test -Dsurefire.suiteXmlFiles=smoke-test.xml'
                     }
+                    
                 }
                 stage('Regression Tests') {
+                    agent { label 'node1' }
                     steps {
-                        script {
-                            if (isUnix()) {
-                                sh 'mvn test -Dsurefire.suiteXmlFiles=regression-testng.xml'
-                            } else {
-                                bat 'mvn test -Dsurefire.suiteXmlFiles=regression-testng.xml'
-                            }
-                        }
+                        echo 'Running regression tests...'
+                        unstash 'source'
+                        bat 'mvn test -Dsurefire.suiteXmlFiles=regression-test.xml'
                     }
+                  
                 }
             }
+            
         }
+        
     }
-
 }
+
