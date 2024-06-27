@@ -1,43 +1,44 @@
 pipeline {
     agent any
-
     stages {
         stage('Build') {
-            agent any
             steps {
-                echo 'Building code....'
-               
+                // Clean and compile the project
+                script {
+                    if (isUnix()) {
+                        sh 'mvn clean compile'
+                    } else {
+                        bat 'mvn clean compile'
+                    }
+                }
             }
         }
-        stage('checkout'){
-            agent any
-            steps{
-                 echo 'Checking out source code...'
-                 git credentialsId: 'key', url: 'https://github.com/nitinjain2107/JenkinsTest.git'
-        }
-        }
-        stage('Test'){
+        stage('Parallel Test Execution') {
             parallel {
                 stage('Smoke Tests') {
-                    agent any
                     steps {
-                        echo 'Running smoke tests...'
-                        bat 'mvn test -Dsurefire.suiteXmlFiles=smoke-test.xml'
+                        script {
+                            if (isUnix()) {
+                                sh 'mvn test -Dsurefire.suiteXmlFiles=smoke-testng.xml'
+                            } else {
+                                bat 'mvn test -Dsurefire.suiteXmlFiles=smoke-testng.xml'
+                            }
+                        }
                     }
-                    
                 }
                 stage('Regression Tests') {
-                    agent any
                     steps {
-                        echo 'Running regression tests...'
-                        sh 'mvn test -Dsurefire.suiteXmlFiles=regression-test.xml'
+                        script {
+                            if (isUnix()) {
+                                sh 'mvn test -Dsurefire.suiteXmlFiles=regression-testng.xml'
+                            } else {
+                                bat 'mvn test -Dsurefire.suiteXmlFiles=regression-testng.xml'
+                            }
+                        }
                     }
-                 
                 }
             }
-            
         }
-        
     }
-}
 
+}
